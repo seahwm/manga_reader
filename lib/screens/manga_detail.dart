@@ -7,7 +7,8 @@ class MangaDetail extends StatefulWidget {
   final Future<List<DocumentFile>> docs;
   final String mangaName;
   final String chapterName;
-  const MangaDetail(this.docs,this.mangaName,this.chapterName, {super.key});
+
+  const MangaDetail(this.docs, this.mangaName, this.chapterName, {super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -46,29 +47,29 @@ class _MangaDetailState extends State<MangaDetail> {
             );
             return Stack(
               children: [
-               ListView.builder(
-                    cacheExtent: MediaQuery.of(context).size.height * 30,
-                    itemCount: mangaImgs.length + 1,
-                    itemBuilder: (ctx, i) {
-                      if (i == mangaImgs.length) {
-                        return Center(child: Text("End"));
-                      }
-                      return FutureBuilder(
-                        future: mangaImgs[i].read(),
-                        builder: (ctx, sanpshot) {
-                          if (sanpshot.hasData) {
-                            // return Image.memory(sanpshot.data!);
-                            return WidgetZoom(
-                              heroAnimationTag: i,
-                              zoomWidget: Image.memory(sanpshot.data!),
-                            );
-                          } else {
-                            return Text('${mangaImgs[i].name}No data');
-                          }
-                        },
-                      );
-                    },
-                  ),
+                ListView.builder(
+                  cacheExtent: MediaQuery.of(context).size.height * 30,
+                  itemCount: mangaImgs.length + 1,
+                  itemBuilder: (ctx, i) {
+                    if (i == mangaImgs.length) {
+                      return Center(child: Text("End"));
+                    }
+                    return FutureBuilder(
+                      future: mangaImgs[i].read(),
+                      builder: (ctx, sanpshot) {
+                        if (sanpshot.hasData) {
+                          // return Image.memory(sanpshot.data!);
+                          return WidgetZoom(
+                            heroAnimationTag: i,
+                            zoomWidget: Image.memory(sanpshot.data!),
+                          );
+                        } else {
+                          return Text('${mangaImgs[i].name}No data');
+                        }
+                      },
+                    );
+                  },
+                ),
                 _buildPageIndexIndicator(mangaImgs.length),
               ],
             );

@@ -1,9 +1,10 @@
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
+import 'package:manga_reader/model/simple_file.dart';
 import 'package:manga_reader/screens/manga_detail.dart';
 
 class Chapter extends StatefulWidget {
-  final DocumentFile file;
+  final SimpleFile file;
   final String mangaName;
   const Chapter(this.file,this.mangaName, {super.key});
 
@@ -26,15 +27,17 @@ class _ChapterState extends State<Chapter>{
         });
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (context) => MangaDetail(widget.file.listDocuments(),widget.mangaName,widget.file.name.split(' ').last),
+            builder: (context) => MangaDetail(DocumentFile.fromUri(widget.file.uri).then((z)=>z!.listDocuments()),widget.mangaName,widget.file.name.split(' ').last),
           ),
         );
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: clicked?Theme.of(context).colorScheme.secondaryFixedDim:Theme.of(context).colorScheme.secondaryContainer,
         foregroundColor: Colors.black,
-      ),
+      ),child: FittedBox(
+      fit: BoxFit.scaleDown, // 如果文字短，保持原样；如果长，则缩放
       child: Text(widget.file.name.split(' ').last),
+    ),
     );
   }
 
