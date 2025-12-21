@@ -2,7 +2,9 @@ import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/directory_provider.dart';
+import 'package:manga_reader/utils/app_utils.dart';
 import 'package:manga_reader/widgets/manga.dart';
+import 'package:manga_reader/model/manga.dart' as mangaTable;
 
 class MangaListing extends ConsumerStatefulWidget {
   const MangaListing({super.key});
@@ -16,14 +18,21 @@ class MangaListing extends ConsumerStatefulWidget {
 class _MangaListingState extends ConsumerState<MangaListing> {
   @override
   Widget build(BuildContext context) {
-    String? dir = ref.watch(directoryProvider);
+    FldToListen? fld=ref.watch(directoryProvider);
+    String? dir = fld?.dir;
     if (dir == null || dir.isEmpty) {
       return const Text("No data");
     }
     return FutureBuilder<List<DocumentFile>>(
-      future: DocumentFile.fromUri(
-        dir,
-      ).then((doc) => doc?.listDocuments() ?? []),
+      future: mangaBoc.findByParentPath(dir).then((manga) {
+        if (manga.isEmpty) {
+          return DocumentFile.fromUri(
+            dir,
+          ).then((doc) => doc?.listDocuments() ?? []);
+        } else {
+          return mangaBoc.cnvMangasToDocumentFiles(manga);
+        }
+      }),
       builder:
           (BuildContext context, AsyncSnapshot<List<DocumentFile>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -35,6 +44,23 @@ class _MangaListingState extends ConsumerState<MangaListing> {
             } else if (snapshot.hasData) {
               // 如果数据加载成功，构建ListView
               final List<DocumentFile> items = snapshot.data!;
+              mangaBoc.findByParentPath(dir).then((mangas) {
+                final nameSet = Set();
+                for (final m in mangas) {
+                  nameSet.add(m.name);
+                }
+                for (final i in items) {
+                  if (!nameSet.contains(i.name)) {
+                    final m = mangaTable.Manga(
+                      name: i.name,
+                      parentPath: dir,
+                      uri: i.uri,
+                    );
+                    mangaBoc.add(m);
+                  }
+                }
+              });
+
               return GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
