@@ -25,7 +25,7 @@ class ChapterListing extends StatelessWidget {
             return mangaBoc.cnvMangasToSimpleFiles(mangas);
           } else {
             return dir.listDocuments().then((val) {
-              return val.map((v) => SimpleFile(v.name, v.uri)).toList();
+              return val.map((v) => SimpleFile(v.name, v.uri,dir.uri)).toList();
             });
           }
         }),
@@ -42,6 +42,7 @@ class ChapterListing extends StatelessWidget {
                 items.removeWhere((doc) {
                   return doc.name.contains("index");
                 });
+                items.sort((a, b) => a.name.compareTo(b.name));
                 mangaBoc.findByParentPath(dir.uri).then((mangas) {
                   final nameSet = Set();
                   for (final m in mangas) {

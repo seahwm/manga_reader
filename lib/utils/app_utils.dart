@@ -19,6 +19,10 @@ class AppUtils {
     );
   }
 
+  static sort(List lis){
+    lis.sort((a, b) => a.name.compareTo(b.name));
+  }
+
   static List<String> imgExtensions = [
     'jpg',
     'jpeg',
@@ -29,10 +33,7 @@ class AppUtils {
   ];
 
   static Future<void> initDb() async {
-    var databasesPath = await getDatabasesPath();
-    if(db==null){
-      db = await openDatabase(dbName);
-    }
+    db ??= await openDatabase(dbName);
     await mangaBoc.init();
   }
 

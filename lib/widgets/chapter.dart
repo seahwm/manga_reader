@@ -27,7 +27,7 @@ class _ChapterState extends State<Chapter>{
         });
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (context) => MangaDetail(DocumentFile.fromUri(widget.file.uri).then((z)=>z!.listDocuments()),widget.mangaName,widget.file.name.split(' ').last),
+            builder: (context) => MangaDetail(DocumentFile.fromUri(widget.file.uri).then((z)=>z!.listDocuments()),widget.mangaName,widget.file.name.split(' ').last,widget.file.parentUri),
           ),
         );
       },
