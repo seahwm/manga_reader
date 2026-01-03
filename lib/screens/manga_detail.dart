@@ -103,7 +103,8 @@ class _MangaDetailState extends State<MangaDetail> {
                         if (value) {
                             setState(() {
                               widget.docs=DocumentFile.fromUri(widget.allChapter!.elementAt(i+1).uri!).then((z)=>z!.listDocuments());
-                              widget.chapterName=widget.allChapter!.elementAt(i+1).name!.split(' ')[1];
+                              List<String> cName=widget.allChapter!.elementAt(i+1).name!.split(' ');
+                              widget.chapterName=cName.length>1?cName.elementAt(1):cName.elementAt(0);
                             });
                           }
                       });
