@@ -16,7 +16,6 @@ the comic folder need to be in following Structure:
 - Manga2
   - index.jpg (for cover page)
   - Chapter 1
-  - Chapter 1
       - 1.jpg
       - 2.jpg
   - Chapter 2
