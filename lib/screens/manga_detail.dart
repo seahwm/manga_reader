@@ -3,7 +3,7 @@ import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/model/manga.dart';
 import 'package:manga_reader/utils/app_utils.dart';
-import 'package:widget_zoom/widget_zoom.dart';
+import 'package:zoomable_widget/zoomable_widget.dart';
 
 class MangaDetail extends StatefulWidget {
   Future<List<DocumentFile>> docs;
@@ -28,6 +28,7 @@ class MangaDetail extends StatefulWidget {
 
 class _MangaDetailState extends State<MangaDetail> {
   final int _currentPage = 1;
+  int _pointerCount = 0; // 记录当前屏幕上的手指数量 (Current pointer count)
 
   @override
   void initState() {
@@ -36,7 +37,6 @@ class _MangaDetailState extends State<MangaDetail> {
       widget.allChapter = value;
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,10 +63,30 @@ class _MangaDetailState extends State<MangaDetail> {
             mangaImgs.removeWhere(
               (f) => !AppUtils.imgExtensions.contains(f.name.split('.').last),
             );
-            return Stack(
+           return Listener(
+                onPointerDown: (event) {
+                  setState(() {
+                    _pointerCount++;
+                  });
+                },
+                onPointerUp: (event) {
+                  setState(() {
+                    _pointerCount = (_pointerCount - 1).clamp(0, 10); // 确保不会小于0
+                  });
+                },
+                onPointerCancel: (event) {
+                  // 某些特殊情况手势被取消也要重置 (Reset on cancellation)
+                  setState(() {
+                    _pointerCount = (_pointerCount - 1).clamp(0, 10);
+                  });
+                },
+            child:  Zoomable(child: Stack(
               children: [
                 NotificationListener<ScrollNotification>(
                   child: ListView.builder(
+            physics: _pointerCount > 1
+            ? const NeverScrollableScrollPhysics()
+                    : const AlwaysScrollableScrollPhysics(),
                     cacheExtent: MediaQuery.of(context).size.height * 30,
                     itemCount: mangaImgs.length + 1,
                     itemBuilder: (ctx, i) {
@@ -77,11 +97,7 @@ class _MangaDetailState extends State<MangaDetail> {
                         future: mangaImgs[i].read(),
                         builder: (ctx, sanpshot) {
                           if (sanpshot.hasData) {
-                            // return Image.memory(sanpshot.data!);
-                            return WidgetZoom(
-                              heroAnimationTag: i,
-                              zoomWidget: Image.memory(sanpshot.data!),
-                            );
+                            return Image.memory(sanpshot.data!);
                           } else {
                             return Text('${mangaImgs[i].name}No data');
                           }
@@ -109,14 +125,13 @@ class _MangaDetailState extends State<MangaDetail> {
                           }
                       });
                       }
-                      //_jumpToNextChapter();
                     }
-                    return true;
+                    return false;
                   },
                 ),
                 _buildPageIndexIndicator(mangaImgs.length),
               ],
-            );
+            )));
           } else {
             return Text('Out of expectation');
           }
