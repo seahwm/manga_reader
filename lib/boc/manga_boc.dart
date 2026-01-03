@@ -42,7 +42,7 @@ class MangaBoc {
           whereArgs: [uri],
         )
         .then((map) {
-          if (map != null && map.isNotEmpty) {
+          if (map.isNotEmpty) {
             return Manga.fromMap(map.first);
           } else {
             return null;
@@ -63,7 +63,7 @@ class MangaBoc {
   Future<List<SimpleFile>> cnvMangasToSimpleFiles(List<Manga> mangas) {
     final rsl = <SimpleFile>[];
     for (final m in mangas) {
-      rsl.add(SimpleFile(m.name!, m.uri!));
+      rsl.add(SimpleFile(m.name!, m.uri!,m.parentPath!));
     }
     return Future.value(rsl);
   }

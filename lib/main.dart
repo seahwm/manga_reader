@@ -93,13 +93,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
           IconButton(
             icon:Icon(Icons.cleaning_services_outlined),
             onPressed: () async{
-              if (await confirm(context,content:Text('Are You Sure want to delete all data in db?'))) {
-              return debugPrint('pressedOK');
-              mangaBoc.deleteAll();
-
-              }else{
-              return debugPrint('pressedCancel');
-
+              if (await confirm(context,content:Text('确定要删除数据库里的全部数据？'))) {
+                mangaBoc.deleteAll();
               }
             },
 

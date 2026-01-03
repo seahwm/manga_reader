@@ -1,14 +1,24 @@
+import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
+import 'package:manga_reader/model/manga.dart';
 import 'package:manga_reader/utils/app_utils.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
 class MangaDetail extends StatefulWidget {
-  final Future<List<DocumentFile>> docs;
-  final String mangaName;
-  final String chapterName;
+  Future<List<DocumentFile>> docs;
+  String mangaName;
+  String chapterName;
+  List<Manga>? allChapter;
+  final String parentUri;
 
-  const MangaDetail(this.docs, this.mangaName, this.chapterName, {super.key});
+  MangaDetail(
+    this.docs,
+    this.mangaName,
+    this.chapterName,
+    this.parentUri, {
+    super.key,
+  });
 
   @override
   State<StatefulWidget> createState() {
@@ -18,6 +28,14 @@ class MangaDetail extends StatefulWidget {
 
 class _MangaDetailState extends State<MangaDetail> {
   final int _currentPage = 1;
+
+  @override
+  void initState() {
+    mangaBoc.findByParentPath(widget.parentUri).then((value) {
+      AppUtils.sort(value);
+      widget.allChapter = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,27 +65,52 @@ class _MangaDetailState extends State<MangaDetail> {
             );
             return Stack(
               children: [
-                ListView.builder(
-                  cacheExtent: MediaQuery.of(context).size.height * 30,
-                  itemCount: mangaImgs.length + 1,
-                  itemBuilder: (ctx, i) {
-                    if (i == mangaImgs.length) {
-                      return Center(child: Text("End"));
+                NotificationListener<ScrollNotification>(
+                  child: ListView.builder(
+                    cacheExtent: MediaQuery.of(context).size.height * 30,
+                    itemCount: mangaImgs.length + 1,
+                    itemBuilder: (ctx, i) {
+                      if (i == mangaImgs.length) {
+                        return Center(child: Text("End"));
+                      }
+                      return FutureBuilder(
+                        future: mangaImgs[i].read(),
+                        builder: (ctx, sanpshot) {
+                          if (sanpshot.hasData) {
+                            // return Image.memory(sanpshot.data!);
+                            return WidgetZoom(
+                              heroAnimationTag: i,
+                              zoomWidget: Image.memory(sanpshot.data!),
+                            );
+                          } else {
+                            return Text('${mangaImgs[i].name}No data');
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  onNotification: (notification) {
+                    if (notification.metrics.pixels >=
+                            notification.metrics.maxScrollExtent &&
+                        notification is OverscrollNotification &&
+                        notification.overscroll > 0) {
+                      // notification.overscroll > 0 表示在底部继续向上拉
+                      int i = widget.allChapter!.indexWhere((ele) {
+                        return ele.name!.contains(widget.chapterName);
+                      });
+                      if (i != -1 && i!=widget.allChapter!.length-1&& i < widget.allChapter!.length) {
+                      confirm(context, content: Text('要去下一章节吗？')).then((value) {
+                        if (value) {
+                            setState(() {
+                              widget.docs=DocumentFile.fromUri(widget.allChapter!.elementAt(i+1).uri!).then((z)=>z!.listDocuments());
+                              widget.chapterName=widget.allChapter!.elementAt(i+1).name!.split(' ')[1];
+                            });
+                          }
+                      });
+                      }
+                      //_jumpToNextChapter();
                     }
-                    return FutureBuilder(
-                      future: mangaImgs[i].read(),
-                      builder: (ctx, sanpshot) {
-                        if (sanpshot.hasData) {
-                          // return Image.memory(sanpshot.data!);
-                          return WidgetZoom(
-                            heroAnimationTag: i,
-                            zoomWidget: Image.memory(sanpshot.data!),
-                          );
-                        } else {
-                          return Text('${mangaImgs[i].name}No data');
-                        }
-                      },
-                    );
+                    return true;
                   },
                 ),
                 _buildPageIndexIndicator(mangaImgs.length),
