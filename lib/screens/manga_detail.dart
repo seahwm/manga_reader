@@ -64,21 +64,21 @@ class _MangaDetailState extends State<MangaDetail> {
               (f) => !AppUtils.imgExtensions.contains(f.name.split('.').last),
             );
            return Listener(
-                onPointerDown: (event) {
-                  setState(() {
-                    _pointerCount++;
-                  });
-                },
-                onPointerUp: (event) {
-                  setState(() {
-                    _pointerCount = (_pointerCount - 1).clamp(0, 10); // 确保不会小于0
-                  });
-                },
+                // onPointerDown: (event) {
+                //   setState(() {
+                //     _pointerCount++;
+                //   });
+                // },
+                // onPointerUp: (event) {
+                //   setState(() {
+                //     _pointerCount = (_pointerCount - 1).clamp(0, 10); // 确保不会小于0
+                //   });
+                // },
                 onPointerCancel: (event) {
                   // 某些特殊情况手势被取消也要重置 (Reset on cancellation)
-                  setState(() {
-                    _pointerCount = (_pointerCount - 1).clamp(0, 10);
-                  });
+                  // setState(() {
+                  //   _pointerCount = (_pointerCount - 1).clamp(0, 10);
+                  // });
                 },
             child:  Zoomable(child: Stack(
               children: [
