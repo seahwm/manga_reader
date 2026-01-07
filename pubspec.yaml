@@ -43,6 +43,7 @@ dependencies:
   sqflite: ^2.4.2
   confirm_dialog: ^1.0.4
   zoomable_widget: ^0.0.6
+  zoom_view: ^1.0.2
 
 dev_dependencies:
   flutter_test:
