@@ -29,7 +29,6 @@ class MangaDetail extends StatefulWidget {
 class _MangaDetailState extends State<MangaDetail> {
   final int _currentPage = 1;
   ScrollController controller = ScrollController();
-  DateTime? _lastTriggerTime;
   @override
   void initState() {
     mangaBoc.findByParentPath(widget.parentUri).then((value) {
@@ -66,84 +65,61 @@ class _MangaDetailState extends State<MangaDetail> {
             );
             return Stack(
               children: [
-                NotificationListener<ScrollNotification>(
-                  child: ZoomListView(
-                    child: ListView.builder(
-                      controller: controller,
-                      cacheExtent: MediaQuery.of(context).size.height * 30,
-                      itemCount: mangaImgs.length + 1,
-                      itemBuilder: (ctx, i) {
-                        if (i == mangaImgs.length) {
-                          return Center(child: Text("End"));
-                        }
-                        return FutureBuilder(
-                          future: mangaImgs[i].read(),
-                          builder: (ctx, sanpshot) {
-                            if (sanpshot.hasData) {
-                              return Image.memory(sanpshot.data!);
-                            } else {
-                              return Text('${mangaImgs[i].name}No data');
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  onNotification: (notification) {
-                    if (notification is ScrollUpdateNotification) {
-                      // 1. 确保是直接子组件发出的通知，避免嵌套干扰 (Depth Check)
-                      // if (notification.depth != 0) return false;
+                ZoomListView(
+                  child: ListView.builder(
+                    controller: controller,
+                    cacheExtent: MediaQuery.of(context).size.height * 30,
+                    itemCount: mangaImgs.length + 1,
+                    itemBuilder: (ctx, i) {
+                      if (i == mangaImgs.length) {
+                        return SizedBox(
+                          height: 80,
+                          width: double.infinity,
+                          child: ElevatedButton(child: Text("End, Click to next chapter"),style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey,foregroundColor: Colors.white,    shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),),
+                          onPressed: (){
+                            int i = widget.allChapter!.indexWhere((ele) {
+                              return ele.name!.contains(widget.chapterName);
+                            });
 
-                      // 2. 获取滚动的度量信息 (Scroll Metrics)
-                      final metrics = notification.metrics;
-
-                      // 2. 检查是否已经到达或超过底部 (At Bottom)
-                      bool isAtBottom = metrics.pixels >= metrics.maxScrollExtent;
-
-                      // 3. 检查滑动方向 (Scroll Direction)
-                      // scrollDelta > 0 表示用户在向上划动手指，列表向内容下方滚动（向下划）
-                      bool isScrollingDown = (notification.scrollDelta ?? 0) > 0;
-                      // 3. 判断当前滚动位置是否接近或等于最大滚动范围
-                      // pixels: 当前位置, maxScrollExtent: 最大可滚动范围
-                      if (isAtBottom&& isScrollingDown) {
-                        final now = DateTime.now();
-                        if (_lastTriggerTime != null &&
-                            now.difference(_lastTriggerTime!).inMilliseconds < 500) {
-                          return false;
-                        }
-                        _lastTriggerTime = now;
-                        print("检测到触底 (Approaching bottom)!");
-                        // 在这里执行加载更多的逻辑
-                        int i = widget.allChapter!.indexWhere((ele) {
-                          return ele.name!.contains(widget.chapterName);
-                        });
-
-                        if (i != -1 &&
-                            i != widget.allChapter!.length - 1 &&
-                            i < widget.allChapter!.length) {
-                          confirm(context, content: Text('要去下一章节吗？')).then((
-                            value,
-                          ) {
-                            if (value) {
-                              setState(() {
-                                widget.docs = DocumentFile.fromUri(
-                                  widget.allChapter!.elementAt(i + 1).uri!,
-                                ).then((z) => z!.listDocuments());
-                                List<String> cName = widget.allChapter!
-                                    .elementAt(i + 1)
-                                    .name!
-                                    .split(' ');
-                                widget.chapterName = cName.length > 1
-                                    ? cName.elementAt(1)
-                                    : cName.elementAt(0);
+                            if (i != -1 &&
+                                i != widget.allChapter!.length - 1 &&
+                                i < widget.allChapter!.length) {
+                              confirm(ctx, content: Text('要去下一章节吗？')).then((
+                                  value,
+                                  ) {
+                                if (value) {
+                                  setState(() {
+                                    widget.docs = DocumentFile.fromUri(
+                                      widget.allChapter!.elementAt(i + 1).uri!,
+                                    ).then((z) => z!.listDocuments());
+                                    List<String> cName = widget.allChapter!
+                                        .elementAt(i + 1)
+                                        .name!
+                                        .split(' ');
+                                    widget.chapterName = cName.length > 1
+                                        ? cName.elementAt(1)
+                                        : cName.elementAt(0);
+                                  });
+                                }
                               });
                             }
-                          });
-                        }
+                          },),
+                        );
                       }
-                    }
-                    return false;
-                  },
+                      return FutureBuilder(
+                        future: mangaImgs[i].read(),
+                        builder: (ctx, sanpshot) {
+                          if (sanpshot.hasData) {
+                            return Image.memory(sanpshot.data!);
+                          } else {
+                            return Text('${mangaImgs[i].name}No data');
+                          }
+                        },
+                      );
+                    },
+                  ),
                 ),
                 _buildPageIndexIndicator(mangaImgs.length),
               ],
