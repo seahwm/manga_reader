@@ -2,6 +2,7 @@ import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/app_title_provider.dart';
+import 'package:manga_reader/screens/setting.dart';
 import 'package:manga_reader/utils/app_utils.dart';
 import 'package:manga_reader/screens/manga_listing.dart';
 
@@ -10,6 +11,7 @@ import 'provider/directory_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final dir = await AppUtils.getSaveDirectory();
+  pagesToCache=await AppUtils.getCacheSize();
   final dirNotifier = DirectoryNotifier();
   dirNotifier.updateDirectory(dir);
   await AppUtils.initDb();
@@ -91,11 +93,13 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         title: Text(title),
         actions: [
           IconButton(
-            icon:Icon(Icons.cleaning_services_outlined),
+            icon:Icon(Icons.settings),
             onPressed: () async{
-              if (await confirm(context,content:Text('确定要删除数据库里的全部数据？'))) {
-                mangaBoc.deleteAll();
-              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => SettingsScreen(),
+                ),
+              );
             },
 
           ),

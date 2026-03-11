@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:manga_reader/boc/manga_boc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-
+int pagesToCache = 30;
 class AppUtils {
   AppUtils._();
 
   static const dirKey = 'manga_directory';
-
+  static const cacheSize = 'cache_size';
   static const dbName = 'manga.db';
 
   static Database? db;
@@ -16,6 +16,12 @@ class AppUtils {
   static Future<String> getSaveDirectory() {
     return SharedPreferences.getInstance().then(
       (prefs) => prefs.getString(dirKey) ?? '',
+    );
+  }
+
+  static Future<int> getCacheSize() {
+    return SharedPreferences.getInstance().then(
+          (prefs) => prefs.getInt(cacheSize) ?? 30,
     );
   }
 

@@ -1,12 +1,15 @@
+import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/model/simple_file.dart';
 import 'package:manga_reader/screens/manga_detail.dart';
+import 'package:manga_reader/utils/app_utils.dart';
 
 class Chapter extends StatefulWidget {
   final SimpleFile file;
   final String mangaName;
-  const Chapter(this.file,this.mangaName, {super.key});
+  Function rebuild;
+   Chapter(this.file,this.mangaName, this.rebuild,{super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -20,7 +23,24 @@ class _ChapterState extends State<Chapter>{
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return ElevatedButton(onLongPress: ()async{
+      if (await confirm(
+        context,
+        content: Text('Are you sure want to delete ${widget.file.name.split(' ').last}？'),
+      )) {
+        DocumentFile.fromUri(widget.file.uri).then((f){
+         if(f!=null){
+           f.delete().then((val){
+             if(val){
+                 debugPrint(widget.file.uri);
+                 mangaBoc.deleteByUri(widget.file.uri);
+                 widget.rebuild();
+             }
+           });
+         }
+        });
+      }
+    },
       onPressed: () async {
         setState(() {
           clicked=true;

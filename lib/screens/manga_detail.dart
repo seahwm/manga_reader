@@ -68,7 +68,7 @@ class _MangaDetailState extends State<MangaDetail> {
                 ZoomListView(
                   child: ListView.builder(
                     controller: controller,
-                    cacheExtent: MediaQuery.of(context).size.height * 30,
+                    cacheExtent: MediaQuery.of(context).size.height * pagesToCache,
                     itemCount: mangaImgs.length + 1,
                     itemBuilder: (ctx, i) {
                       if (i == mangaImgs.length) {

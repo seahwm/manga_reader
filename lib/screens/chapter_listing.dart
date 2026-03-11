@@ -5,27 +5,40 @@ import 'package:manga_reader/utils/app_utils.dart';
 import 'package:manga_reader/widgets/chapter.dart';
 
 import '../model/manga.dart' as mangaTable;
+class ChapterListing extends StatefulWidget{
 
-class ChapterListing extends StatelessWidget {
   final DocumentFile dir;
 
   const ChapterListing(this.dir, {super.key});
 
   @override
+  State<StatefulWidget> createState() {
+    return _ChapterListingState();
+  }
+
+}
+class _ChapterListingState extends State<ChapterListing> {
+
+  void rebuild(){
+    setState(() {
+
+    });
+  }
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(dir.name),
+        title: Text(widget.dir.name),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: FutureBuilder<List<SimpleFile>>(
-        future: mangaBoc.findByParentPath(dir.uri).then((mangas) {
+        future: mangaBoc.findByParentPath(widget.dir.uri).then((mangas) {
           if (mangas.isNotEmpty) {
             debugPrint('Hit SQL in chapter Listing');
             return mangaBoc.cnvMangasToSimpleFiles(mangas);
           } else {
-            return dir.listDocuments().then((val) {
-              return val.map((v) => SimpleFile(v.name, v.uri,dir.uri)).toList();
+            return widget.dir.listDocuments().then((val) {
+              return val.map((v) => SimpleFile(v.name, v.uri,widget.dir.uri)).toList();
             });
           }
         }),
@@ -43,7 +56,7 @@ class ChapterListing extends StatelessWidget {
                   return doc.name.contains("index");
                 });
                 items.sort((a, b) => a.name.compareTo(b.name));
-                mangaBoc.findByParentPath(dir.uri).then((mangas) {
+                mangaBoc.findByParentPath(widget.dir.uri).then((mangas) {
                   final nameSet = Set();
                   for (final m in mangas) {
                     nameSet.add(m.name);
@@ -52,7 +65,7 @@ class ChapterListing extends StatelessWidget {
                     if (!nameSet.contains(i.name)) {
                       final m = mangaTable.Manga(
                         name: i.name,
-                        parentPath: dir.uri,
+                        parentPath: widget.dir.uri,
                         uri: i.uri,
                       );
                       mangaBoc.add(m);
@@ -69,7 +82,7 @@ class ChapterListing extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 30, horizontal: 10),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    return Chapter(items[index], dir.name);
+                    return Chapter(items[index], widget.dir.name,rebuild);
                   },
                 );
               } else {

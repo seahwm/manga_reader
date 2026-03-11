@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,8 +13,9 @@ class Manga extends ConsumerWidget {
   final indexUriProvider = StateProvider<Uint8List?>((ref) => null);
   final DocumentFile fileDir;
   DocumentFile? indexFile;
+  Function(bool) rebuild;
 
-  Manga(this.fileDir, {super.key});
+  Manga(this.fileDir,this.rebuild, {super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,7 +65,19 @@ class Manga extends ConsumerWidget {
         if (uri != null)
           Expanded(
             flex: 3,
-            child: GestureDetector(
+            child: GestureDetector(onLongPress: ()async{
+              if (await confirm(
+                context,
+                content: Text('Are you sure want to delete ${fileDir.name}?'),
+              )) {
+                fileDir.delete().then((val){
+                  if(val){
+                    mangaBoc.deleteMangaByUri(fileDir.uri);
+                    rebuild(false);
+                  }
+                });
+              }
+            },
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(

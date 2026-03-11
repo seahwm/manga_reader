@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/directory_provider.dart';
 import 'package:manga_reader/utils/app_utils.dart';
+import 'package:manga_reader/utils/loading.dart';
 import 'package:manga_reader/widgets/manga.dart';
 import 'package:manga_reader/model/manga.dart' as mangaTable;
 
@@ -16,6 +17,13 @@ class MangaListing extends ConsumerStatefulWidget {
 }
 
 class _MangaListingState extends ConsumerState<MangaListing> {
+
+  bool loading=false;
+  void rebuild(bool load){
+    setState(() {
+      loading=load;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     FldToListen? fld=ref.watch(directoryProvider);
@@ -61,7 +69,11 @@ class _MangaListingState extends ConsumerState<MangaListing> {
                 }
               });
 
-              return GridView.builder(
+
+                if(loading)
+                  return Loading();
+                  else
+                  return  GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 25,
@@ -71,7 +83,7 @@ class _MangaListingState extends ConsumerState<MangaListing> {
                 padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
-                  return Manga(items[index]);
+                  return Manga(items[index],rebuild);
                 },
               );
 

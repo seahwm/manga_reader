@@ -1,4 +1,5 @@
 import 'package:docman/docman.dart';
+import 'package:flutter/material.dart';
 import 'package:manga_reader/model/manga.dart';
 import 'package:manga_reader/model/simple_file.dart';
 import 'package:manga_reader/utils/app_utils.dart';
@@ -19,6 +20,26 @@ class MangaBoc {
   Future<Manga> add(Manga manga) async {
     manga.id = await AppUtils.db!.insert(Manga.tableName, manga.toMap());
     return manga;
+  }
+
+  Future<int> deleteInvalidRecords() async {
+   return AppUtils.db!.query(Manga.tableName,columns: Manga.allCol).then((val) async {
+      if(val.isNotEmpty){
+        final idsToDel=Set<int>();
+        for(final m in val){
+          final Manga man=Manga.fromMap(m);
+          try{
+            await DocumentFile.fromUri(man.uri!);
+          }catch(e){
+            idsToDel.add(man.id!);
+          }
+        }
+        await deleteByIds(idsToDel.toList());
+        return idsToDel.length;
+      }
+      return 0;
+    });
+
   }
 
   Future<Manga> update(Manga manga) async {
@@ -94,6 +115,29 @@ class MangaBoc {
       Manga.tableName,
       where: '${Manga.idCol} = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteMangaByUri(String uri) async {
+    return await AppUtils.db!.delete(
+      Manga.tableName,
+      where: '${Manga.uriCol} = ? or  ${Manga.parentPathCol} = ?',
+      whereArgs: [uri,uri],
+    );
+  }
+
+  Future<int> deleteByUri(String uri) async {
+    return await AppUtils.db!.delete(
+      Manga.tableName,
+      where: '${Manga.uriCol} = ?',
+      whereArgs: [uri],
+    );
+  }
+
+  Future<void> deleteByIds(List<int> ids) async {
+    debugPrint(ids.toString().replaceAll('[', '(').replaceAll(']', ')'));
+    return await AppUtils.db!.execute(
+      'DELETE FROM ${Manga.tableName} WHERE ${Manga.idCol} in ${ids.toString().replaceAll('[', '(').replaceAll(']', ')')}',[]
     );
   }
 }
