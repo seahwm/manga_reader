@@ -34,7 +34,4 @@ the comic folder need to be in following Structure:
 - [ ] Setting page
   - [ ] margin setting in case too near screen and unbale see clearly due to phone case
   - [ ] dark mode maybe
-- [ ] db management
-  - [ ] clear db record for certain manga only instead of delete all record
-  - [ ] sql browser to view all record/table, and enable user to execute sql script (maybe)
-- [ ] Code refactoring, now very messy
+- [/] Code refactoring, now very messy

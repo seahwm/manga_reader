@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,7 +43,6 @@ class _ChapterState extends ConsumerState<Chapter> {
               widget.dir,
               widget.mangaName,
               widget.dir.split('/').last.split(' ').last,
-              Directory(widget.dir).parent.path,
             ),
           ),
         );

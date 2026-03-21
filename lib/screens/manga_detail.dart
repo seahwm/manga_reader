@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/cache_size_provider.dart';
@@ -12,15 +13,8 @@ class MangaDetail extends ConsumerStatefulWidget {
   String dir;
   String mangaName;
   String chapterName;
-  final String parentPath;
 
-  MangaDetail(
-    this.dir,
-    this.mangaName,
-    this.chapterName,
-    this.parentPath, {
-    super.key,
-  });
+  MangaDetail(this.dir, this.mangaName, this.chapterName, {super.key});
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() {
@@ -85,30 +79,31 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                         ),
                       ),
                       onPressed: () {
-                        // int i = widget.allChapter!.indexWhere((ele) {
-                        //   return ele.name!.contains(widget.chapterName);
-                        // });
-                        //
-                        // if (i != -1 &&
-                        //     i != widget.allChapter!.length - 1 &&
-                        //     i < widget.allChapter!.length) {
-                        //   confirm(ctx, content: Text('要去下一章节吗？')).then((value) {
-                        //     if (value) {
-                        //       setState(() {
-                        //         widget.docs = DocumentFile.fromUri(
-                        //           widget.allChapter!.elementAt(i + 1).uri!,
-                        //         ).then((z) => z!.listDocuments());
-                        //         List<String> cName = widget.allChapter!
-                        //             .elementAt(i + 1)
-                        //             .name!
-                        //             .split(' ');
-                        //         widget.chapterName = cName.length > 1
-                        //             ? cName.elementAt(1)
-                        //             : cName.elementAt(0);
-                        //       });
-                        //     }
-                        //   });
-                        // }
+                        final allChapter = Directory(
+                          widget.dir,
+                        ).parent.listSync();
+                        allChapter.sort((a, b) {
+                          return Comparable.compare(a.path, b.path);
+                        });
+                        int i = allChapter.indexWhere(
+                          (f) => f.path == widget.dir,
+                        );
+                        if (i != -1 && i != allChapter.length - 1) {
+                          confirm(ctx, content: Text('Next Chapter？')).then((
+                            value,
+                          ) {
+                            if (value) {
+                              setState(() {
+                                widget.dir = allChapter[i + 1].path;
+                                widget.chapterName = widget.dir
+                                    .split('/')
+                                    .last
+                                    .split(' ')
+                                    .last;
+                              });
+                            }
+                          });
+                        }
                       },
                     ),
                   );
