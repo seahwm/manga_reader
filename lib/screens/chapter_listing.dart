@@ -1,96 +1,66 @@
-import 'package:docman/docman.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:manga_reader/model/simple_file.dart';
-import 'package:manga_reader/utils/app_utils.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/provider/current_chapter_provider.dart';
 import 'package:manga_reader/widgets/chapter.dart';
 
-import '../model/manga.dart' as mangaTable;
-class ChapterListing extends StatefulWidget{
+import '../utils/loading.dart';
 
-  final DocumentFile dir;
-
-  const ChapterListing(this.dir, {super.key});
+class ChapterListing extends ConsumerStatefulWidget {
+  const ChapterListing({super.key});
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<ConsumerStatefulWidget> createState() {
     return _ChapterListingState();
   }
-
 }
-class _ChapterListingState extends State<ChapterListing> {
 
-  void rebuild(){
-    setState(() {
-
-    });
-  }
+class _ChapterListingState extends ConsumerState<ChapterListing> {
   @override
   Widget build(BuildContext context) {
+    final chapProvider = ref.watch(currentChapterProvider);
+    return chapProvider.when(
+      //path.split('/').last
+      // 只有第一次从 SharedPrefs 读取时会显示这个
+      loading: () => _buildChapterListing(const Loading(),'Loading'),
+      // 读取失败的处理
+      error: (err, stack) => _buildChapterListing(const Text('Error'),'Error'),
+      // 一旦有了值（或者是之后的同步更新），都会走这里
+      data: (path) => path.isEmpty
+          ? _buildChapterListing(const Center(child: Text('No data')), 'Error')
+          : _buildChapterListing(_ChapterListing(path),path.split('/').last),
+    );
+  }
+
+  Widget _ChapterListing(String path) {
+    final mangaDir = Directory(path);
+    final chapterList = mangaDir.listSync();
+    // remove cover page image, and only list the chapter folder.
+    chapterList.removeWhere((f) => !Directory(f.path).existsSync());
+
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 25,
+        childAspectRatio: 20 / 6,
+        mainAxisSpacing: 10,
+      ),
+      padding: EdgeInsets.symmetric(vertical: 30, horizontal: 10),
+      itemCount: chapterList.length,
+      itemBuilder: (context, index) {
+        return Chapter(chapterList[index].path, path.split('/').last);
+      },
+    );
+  }
+
+  Widget _buildChapterListing(Widget w, String title) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.dir.name),
+        title: Text(title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: FutureBuilder<List<SimpleFile>>(
-        future: mangaBoc.findByParentPath(widget.dir.uri).then((mangas) {
-          if (mangas.isNotEmpty) {
-            debugPrint('Hit SQL in chapter Listing');
-            return mangaBoc.cnvMangasToSimpleFiles(mangas);
-          } else {
-            return widget.dir.listDocuments().then((val) {
-              return val.map((v) => SimpleFile(v.name, v.uri,widget.dir.uri)).toList();
-            });
-          }
-        }),
-        builder:
-            (BuildContext context, AsyncSnapshot<List<SimpleFile>> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                // 如果还在加载，显示一个加载指示器
-                return const CircularProgressIndicator();
-              } else if (snapshot.hasError) {
-                // 如果出现错误，显示错误信息
-                return Text('Error: ${snapshot.error}');
-              } else if (snapshot.hasData) {
-                final List<SimpleFile> items = snapshot.data!;
-                items.removeWhere((doc) {
-                  return doc.name.contains("index");
-                });
-                items.sort((a, b) => a.name.compareTo(b.name));
-                mangaBoc.findByParentPath(widget.dir.uri).then((mangas) {
-                  final nameSet = Set();
-                  for (final m in mangas) {
-                    nameSet.add(m.name);
-                  }
-                  for (final i in items) {
-                    if (!nameSet.contains(i.name)) {
-                      final m = mangaTable.Manga(
-                        name: i.name,
-                        parentPath: widget.dir.uri,
-                        uri: i.uri,
-                      );
-                      mangaBoc.add(m);
-                    }
-                  }
-                });
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 25,
-                    childAspectRatio: 20 / 6,
-                    mainAxisSpacing: 10,
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 30, horizontal: 10),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    return Chapter(items[index], widget.dir.name,rebuild);
-                  },
-                );
-              } else {
-                // 其他情况（例如没有数据），可以显示一个空列表消息
-                return const Text('No data available');
-              }
-            },
-      ),
+      body: w,
     );
   }
 }

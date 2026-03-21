@@ -1,72 +1,43 @@
-import 'package:confirm_dialog/confirm_dialog.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/provider/cache_size_provider.dart';
 
-import '../utils/app_utils.dart';
 import '../utils/loading.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<ConsumerStatefulWidget> createState() {
+   return _SettingsScreenState();
+  }
+
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // State for the slider (Page to cache)
   var _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
+    final cacheSize=ref.watch(cacheSizeProvider);
+    return cacheSize.when(
+      // 只有第一次从 SharedPrefs 读取时会显示这个
+        loading: () => const Loading(),
+        // 读取失败的处理
+        error: (err, stack) => Text('Error: $err'),
+        // 一旦有了值（或者是之后的同步更新），都会走这里
+        data: (size) =>  _buildSettingScreen(size)
+    );
+  }
+
+  Widget _buildSettingScreen(int cacheSize){
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: Stack(
         children: [
           ListView(
             children: [
-              // --- Database Section ---
-              _buildSectionHeader('Database Management)'),
-
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_forever,
-                  color: Colors.redAccent,
-                ),
-                title: const Text('Clear All Database'),
-                onTap: () async {
-                  if (await confirm(
-                    context,
-                    content: Text('Are you sure want to delete all db record？'),
-                  )) {
-                    mangaBoc.deleteAll();
-                  }
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(
-                  Icons.cleaning_services,
-                  color: Colors.blueAccent,
-                ),
-                title: const Text('Clear Invalid Records'),
-                onTap: () async {
-                  setState(() {
-                    _isLoading=true;
-                  });
-                  final rec = await mangaBoc.deleteInvalidRecords();
-
-                  setState(() {
-                    _isLoading=false;
-                  });
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("deleted ${rec} records")));
-                },
-              ),
-
-              const Divider(),
-
               // --- Cache Section ---
               _buildSectionHeader('Cache Settings'),
 
@@ -100,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${pagesToCache.round()}',
+                            '${cacheSize}',
                             style: TextStyle(
                               color: Theme.of(
                                 context,
@@ -112,18 +83,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                     Slider(
-                      value: pagesToCache.toDouble(),
+                      value: cacheSize.toDouble(),
                       min: 20,
                       max: 300,
                       divisions: 70,
-                      label: pagesToCache.round().toString(),
+                      label: cacheSize.round().toString(),
                       onChanged: (double value) async {
-                        await SharedPreferences.getInstance().then(
-                              (prefs) => prefs.setInt(AppUtils.cacheSize, value.toInt()),
-                        );
-                        setState(() {
-                          pagesToCache = value.toInt();
-                        });
+                        ref.watch(cacheSizeProvider.notifier).setCacheSize(value.toInt());
                       },
                     ),
                   ],
@@ -131,8 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          if (_isLoading)
-            Loading()
+          if (_isLoading) Loading(),
         ],
       ),
     );

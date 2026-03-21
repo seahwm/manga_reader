@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 class Loading extends StatelessWidget{
+
+  const Loading({super.key});
   @override
   Widget build(BuildContext context) {
-    return  Container(
+    return Container(
       color: Colors.black.withOpacity(0.3), // 半透明背景
       child: Center(
         child: Card(
@@ -11,7 +13,7 @@ class Loading extends StatelessWidget{
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Padding(
+          child: const Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,

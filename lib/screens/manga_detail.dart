@@ -1,44 +1,59 @@
-import 'package:confirm_dialog/confirm_dialog.dart';
-import 'package:docman/docman.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:manga_reader/model/manga.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/provider/cache_size_provider.dart';
 import 'package:manga_reader/utils/app_utils.dart';
 import 'package:zoom_view/zoom_view.dart';
 
-class MangaDetail extends StatefulWidget {
-  Future<List<DocumentFile>> docs;
+import '../utils/loading.dart';
+
+class MangaDetail extends ConsumerStatefulWidget {
+  String dir;
   String mangaName;
   String chapterName;
-  List<Manga>? allChapter;
-  final String parentUri;
+  final String parentPath;
 
   MangaDetail(
-    this.docs,
+    this.dir,
     this.mangaName,
     this.chapterName,
-    this.parentUri, {
+    this.parentPath, {
     super.key,
   });
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<ConsumerStatefulWidget> createState() {
     return _MangaDetailState();
   }
 }
 
-class _MangaDetailState extends State<MangaDetail> {
+class _MangaDetailState extends ConsumerState<MangaDetail> {
   final int _currentPage = 1;
   ScrollController controller = ScrollController();
-  @override
-  void initState() {
-    mangaBoc.findByParentPath(widget.parentUri).then((value) {
-      AppUtils.sort(value);
-      widget.allChapter = value;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    final cacheSizeAsyncValue = ref.watch(cacheSizeProvider);
+
+    return cacheSizeAsyncValue.when(
+      // 只有第一次从 SharedPrefs 读取时会显示这个
+      loading: () => const Loading(),
+      // 读取失败的处理
+      error: (err, stack) => Text('Error: $err'),
+      // 一旦有了值（或者是之后的同步更新），都会走这里
+      data: (cacheSize) => _buildMangaDetailScreen(cacheSize),
+    );
+  }
+
+  Widget _buildMangaDetailScreen(int cacheSize) {
+    final mangaImgList = Directory(widget.dir).listSync();
+    mangaImgList.sort((a, b) {
+      return Comparable.compare(a.path, b.path);
+    });
+    mangaImgList.removeWhere(
+      (f) => !AppUtils.imgExtensions.contains(f.path.split('.').last),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -48,86 +63,62 @@ class _MangaDetailState extends State<MangaDetail> {
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: FutureBuilder<List<DocumentFile>>(
-        future: widget.docs,
-        builder: (docsCtx, docsSnapshot) {
-          if (docsSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: Text('Loading Documents'));
-          } else if (docsSnapshot.hasError) {
-            return Text('Error: ${docsSnapshot.error}');
-          } else if (docsSnapshot.hasData) {
-            docsSnapshot.data!.sort((a, b) {
-              return Comparable.compare(a.name, b.name);
-            });
-            List<DocumentFile> mangaImgs = docsSnapshot.data!;
-            mangaImgs.removeWhere(
-              (f) => !AppUtils.imgExtensions.contains(f.name.split('.').last),
-            );
-            return Stack(
-              children: [
-                ZoomListView(
-                  child: ListView.builder(
-                    controller: controller,
-                    cacheExtent: MediaQuery.of(context).size.height * pagesToCache,
-                    itemCount: mangaImgs.length + 1,
-                    itemBuilder: (ctx, i) {
-                      if (i == mangaImgs.length) {
-                        return SizedBox(
-                          height: 80,
-                          width: double.infinity,
-                          child: ElevatedButton(child: Text("End, Click to next chapter"),style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey,foregroundColor: Colors.white,    shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),),
-                          onPressed: (){
-                            int i = widget.allChapter!.indexWhere((ele) {
-                              return ele.name!.contains(widget.chapterName);
-                            });
-
-                            if (i != -1 &&
-                                i != widget.allChapter!.length - 1 &&
-                                i < widget.allChapter!.length) {
-                              confirm(ctx, content: Text('要去下一章节吗？')).then((
-                                  value,
-                                  ) {
-                                if (value) {
-                                  setState(() {
-                                    widget.docs = DocumentFile.fromUri(
-                                      widget.allChapter!.elementAt(i + 1).uri!,
-                                    ).then((z) => z!.listDocuments());
-                                    List<String> cName = widget.allChapter!
-                                        .elementAt(i + 1)
-                                        .name!
-                                        .split(' ');
-                                    widget.chapterName = cName.length > 1
-                                        ? cName.elementAt(1)
-                                        : cName.elementAt(0);
-                                  });
-                                }
-                              });
-                            }
-                          },),
-                        );
-                      }
-                      return FutureBuilder(
-                        future: mangaImgs[i].read(),
-                        builder: (ctx, sanpshot) {
-                          if (sanpshot.hasData) {
-                            return Image.memory(sanpshot.data!);
-                          } else {
-                            return Text('${mangaImgs[i].name}No data');
-                          }
-                        },
-                      );
-                    },
-                  ),
-                ),
-                _buildPageIndexIndicator(mangaImgs.length),
-              ],
-            );
-          } else {
-            return Text('Out of expectation');
-          }
-        },
+      body: Stack(
+        children: [
+          ZoomListView(
+            child: ListView.builder(
+              controller: controller,
+              cacheExtent: MediaQuery.of(context).size.height * cacheSize,
+              itemCount: mangaImgList.length + 1,
+              itemBuilder: (ctx, i) {
+                if (i == mangaImgList.length) {
+                  return SizedBox(
+                    height: 80,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      child: Text("End, Click to next chapter"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueGrey,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      onPressed: () {
+                        // int i = widget.allChapter!.indexWhere((ele) {
+                        //   return ele.name!.contains(widget.chapterName);
+                        // });
+                        //
+                        // if (i != -1 &&
+                        //     i != widget.allChapter!.length - 1 &&
+                        //     i < widget.allChapter!.length) {
+                        //   confirm(ctx, content: Text('要去下一章节吗？')).then((value) {
+                        //     if (value) {
+                        //       setState(() {
+                        //         widget.docs = DocumentFile.fromUri(
+                        //           widget.allChapter!.elementAt(i + 1).uri!,
+                        //         ).then((z) => z!.listDocuments());
+                        //         List<String> cName = widget.allChapter!
+                        //             .elementAt(i + 1)
+                        //             .name!
+                        //             .split(' ');
+                        //         widget.chapterName = cName.length > 1
+                        //             ? cName.elementAt(1)
+                        //             : cName.elementAt(0);
+                        //       });
+                        //     }
+                        //   });
+                        // }
+                      },
+                    ),
+                  );
+                }
+                return Image.file(File(mangaImgList[i].path));
+              },
+            ),
+          ),
+          _buildPageIndexIndicator(mangaImgList.length),
+        ],
       ),
     );
   }

@@ -1,33 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:manga_reader/boc/manga_boc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
-int pagesToCache = 30;
+
 class AppUtils {
   AppUtils._();
 
   static const dirKey = 'manga_directory';
   static const cacheSize = 'cache_size';
   static const dbName = 'manga.db';
-
-  static Database? db;
-
-  /// Initialize the app. Need to be called before trying to access the directory
-  static Future<String> getSaveDirectory() {
-    return SharedPreferences.getInstance().then(
-      (prefs) => prefs.getString(dirKey) ?? '',
-    );
-  }
-
-  static Future<int> getCacheSize() {
-    return SharedPreferences.getInstance().then(
-          (prefs) => prefs.getInt(cacheSize) ?? 30,
-    );
-  }
-
-  static sort(List lis){
-    lis.sort((a, b) => a.name.compareTo(b.name));
-  }
 
   static List<String> imgExtensions = [
     'jpg',
@@ -37,11 +15,6 @@ class AppUtils {
     'bmp',
     'webp',
   ];
-
-  static Future<void> initDb() async {
-    db ??= await openDatabase(dbName);
-    await mangaBoc.init();
-  }
 
   /// Utils method to show the snack bar
   static void showSnackBar(
@@ -84,5 +57,3 @@ class AppUtils {
     );
   }
 }
-
-final mangaBoc = MangaBoc();

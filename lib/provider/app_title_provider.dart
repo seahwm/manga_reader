@@ -1,3 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final appTitleProvider = StateProvider((ref) => 'xxxz漫画阅读器');
+final appTitleProvider = Provider<String>((ref) {
+  return "xxxz漫画阅读器";
+});

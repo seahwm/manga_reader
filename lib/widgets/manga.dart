@@ -1,102 +1,73 @@
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:confirm_dialog/confirm_dialog.dart';
-import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/provider/current_chapter_provider.dart';
+import 'package:manga_reader/provider/directory_provider.dart';
 
-import 'package:manga_reader/screens/chapter_listing.dart';
-import 'package:manga_reader/utils/app_utils.dart';
+import '../screens/chapter_listing.dart';
 
-class Manga extends ConsumerWidget {
-  final indexUriProvider = StateProvider<Uint8List?>((ref) => null);
-  final DocumentFile fileDir;
-  DocumentFile? indexFile;
-  Function(bool) rebuild;
 
-  Manga(this.fileDir,this.rebuild, {super.key});
+class Manga extends ConsumerStatefulWidget {
+  final String fileDir;
+
+  const Manga(this.fileDir, {super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final uri = ref.watch(indexUriProvider);
-    if (uri == null) {
-      mangaBoc.findByUri(fileDir.uri).then((manga) {
-        if (manga != null &&
-            manga!.indexUri != null &&
-            manga!.indexUri!.isNotEmpty) {
-          debugPrint('Hit sql');
-          DocumentFile.fromUri(manga!.indexUri!).then((val) {
-            val!.read().then(
-              (bytes) => {ref.read(indexUriProvider.notifier).state = bytes},
-            );
-          });
-        } else {
-          debugPrint('No hit sql');
-          fileDir.listDocuments().then((docs) {
-            if (docs.isNotEmpty) {
-              indexFile = docs
-                  .where((doc) => doc.name.contains('index'))
-                  .firstOrNull;
-              if (indexFile == null) {
-                debugPrint('no found Img');
-                ref.read(indexUriProvider.notifier).state = null;
-                return;
-              }
-              debugPrint('found Img');
-              if (manga != null) {
-                debugPrint('insert db Img');
-                manga!.indexUri = indexFile!.uri;
-                mangaBoc.update(manga);
-              }
-              indexFile!.read().then(
-                (bytes) => {ref.read(indexUriProvider.notifier).state = bytes},
-              );
-            }
-          });
-        }
-      });
-    }
+  ConsumerState<ConsumerStatefulWidget> createState() {
+    return _MangaState();
+  }
+}
+
+class _MangaState extends ConsumerState<Manga>{
+  @override
+  Widget build(BuildContext context) {
+    final mangaDir = Directory(widget.fileDir);
+    final chapterList = mangaDir.listSync();
+    final coverImg = chapterList
+        .where((f) => f.path.split('/').last.split('.').first=='index')
+        .firstOrNull;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: [
-        if (uri != null)
-          Expanded(
-            flex: 3,
-            child: GestureDetector(onLongPress: ()async{
+        Expanded(
+          flex: 3,
+          child: GestureDetector(
+            onLongPress: () async {
               if (await confirm(
                 context,
-                content: Text('Are you sure want to delete ${fileDir.name}?'),
+                content: Text(
+                  'Are you sure want to delete ${widget.fileDir.split('/').last}?',
+                ),
               )) {
-                fileDir.delete().then((val){
-                  if(val){
-                    mangaBoc.deleteMangaByUri(fileDir.uri);
-                    rebuild(false);
-                  }
-                });
+               ref.read(directoryProvider.notifier).deleteManga(widget.fileDir);
               }
             },
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => ChapterListing(fileDir),
-                  ),
-                );
+            onTap: () {
+              ref.read(currentChapterProvider.notifier).setCurrentChapter(widget.fileDir);
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (ctx) => const ChapterListing(),
+                ),
+              );
+            },
+            child: coverImg != null
+                ? Image.file(
+              File(coverImg.path),
+              fit: BoxFit.fitWidth,
+              width: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                print("Error loading image in Manga widget: $error");
+                return const Icon(Icons.error);
               },
-              child: Image.memory(
-                uri,
-                fit: BoxFit.fitWidth,
-                width: double.infinity,
-                errorBuilder: (context, error, stackTrace) {
-                  print("Error loading image in Manga widget: $error");
-                  return Icon(Icons.error); // Placeholder for error
-                },
-              ),
-            ),
+            )
+                : TextButton.icon(onPressed: null, label: Text('No Image'),icon: Icon(Icons.error),),
           ),
-        Expanded(flex: 1, child: Text(fileDir.name)),
+        ),
+        Expanded(flex: 1, child: Text(widget.fileDir.split('/').last)),
       ],
     );
   }

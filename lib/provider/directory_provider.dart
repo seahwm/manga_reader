@@ -1,46 +1,41 @@
-import 'package:docman/docman.dart';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/utils/app_utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FldToListen {
-  String? dir;
-  String? idx;
-
-  FldToListen({this.dir, this.idx});
-}
-
-class DirectoryNotifier extends StateNotifier<FldToListen?> {
-  DirectoryNotifier() : super(null);
-
-  void updateDirectory(String? newDir) {
-    if (newDir == null || newDir.isEmpty) {
-      return;
-    }
-    state = FldToListen(dir: newDir, idx: state?.idx);
+class DirectoryNotifier extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
+    final prefs = SharedPreferencesAsync();
+    return await prefs.getString(AppUtils.dirKey) ?? '';
   }
 
-  void updateIdx(String? idx) {
-    if (idx == null || idx.isEmpty) {
-      return;
+  Future<void> deleteManga(String path) async {
+    final crrVal = state.value;
+    if (crrVal == null) {
+      return Future.value();
     }
-    state = FldToListen(dir: state?.dir, idx: idx);
+    state = AsyncLoading();
+    await Directory(path).delete(recursive: true);
+    state = AsyncData(crrVal);
   }
 
-  void pickDirectory() async {
-    DocumentFile? dir = await DocMan.pick.directory();
-
-    if (dir == null) {
-      return;
+  Future<void> pickDirectory() async {
+    final isGrandPermission = await Permission.manageExternalStorage.isGranted;
+    if (!isGrandPermission) {
+      await Permission.manageExternalStorage.request();
     }
-    state = FldToListen(dir: dir.uri, idx: state?.idx);
-    await SharedPreferences.getInstance().then(
-      (prefs) => prefs.setString(AppUtils.dirKey, dir.uri),
-    );
+
+    final dir = await FilePicker.platform.getDirectoryPath();
+    state = AsyncData(dir ?? '');
+    final prefs = SharedPreferencesAsync();
+    await prefs.setString(AppUtils.dirKey, dir ?? '');
   }
 }
 
-final directoryProvider =
-    StateNotifierProvider<DirectoryNotifier, FldToListen?>(
-      (ref) => DirectoryNotifier(),
-    );
+final directoryProvider = AsyncNotifierProvider<DirectoryNotifier, String>(
+  DirectoryNotifier.new,
+);
