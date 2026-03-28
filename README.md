@@ -34,4 +34,4 @@ the comic folder need to be in following Structure:
 - [ ] Setting page
   - [ ] margin setting in case too near screen and unbale see clearly due to phone case
   - [ ] dark mode maybe
-- [/] Code refactoring, now very messy
+- [x] ~~Code refactoring, now very messy~~
