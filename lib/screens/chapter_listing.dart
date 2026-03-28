@@ -8,7 +8,9 @@ import 'package:manga_reader/widgets/chapter.dart';
 import '../utils/loading.dart';
 
 class ChapterListing extends ConsumerStatefulWidget {
-  const ChapterListing({super.key});
+  final String path;
+
+  ChapterListing(this.path, {super.key});
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() {
@@ -25,11 +27,23 @@ class _ChapterListingState extends ConsumerState<ChapterListing> {
       // 只有第一次从 SharedPrefs 读取时会显示这个
       loading: () => _buildChapterListing(const Loading(),'Loading'),
       // 读取失败的处理
-      error: (err, stack) => _buildChapterListing(const Text('Error'),'Error'),
+      error: (err, stack) =>
+          _buildChapterListing(Text(err.toString()), 'Error'),
       // 一旦有了值（或者是之后的同步更新），都会走这里
-      data: (path) => path.isEmpty
-          ? _buildChapterListing(const Center(child: Text('No data')), 'Error')
-          : _buildChapterListing(_ChapterListing(path),path.split('/').last),
+      data: (path) {
+        if (path.isEmpty) {
+          Future.microtask(() {
+            ref
+                .read(currentChapterProvider.notifier)
+                .setCurrentChapter(widget.path);
+          });
+          return _buildChapterListing(const Loading(), 'Loading');
+        }
+        return _buildChapterListing(
+          _ChapterListing(path),
+          path.split('/').last,
+        );
+      },
     );
   }
 
@@ -38,7 +52,9 @@ class _ChapterListingState extends ConsumerState<ChapterListing> {
     final chapterList = mangaDir.listSync();
     // remove cover page image, and only list the chapter folder.
     chapterList.removeWhere((f) => !Directory(f.path).existsSync());
-
+    chapterList.sort((a, b) {
+      return Comparable.compare(a.path, b.path);
+    });
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

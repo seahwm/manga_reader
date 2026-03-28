@@ -15,7 +15,7 @@ class CurrentChapterNotifier extends AsyncNotifier<String> {
     state = AsyncData(parentPath);
   }
 
-  Future<void> setCurrentChapter(String path) async {
+  void setCurrentChapter(String path)  {
     state = AsyncData(path);
   }
 }

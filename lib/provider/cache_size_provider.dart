@@ -12,7 +12,7 @@ class CacheSizeNotifier extends AsyncNotifier<int> {
   Future<void> setCacheSize(int size) async {
     state = AsyncData(size);
     final prefs = SharedPreferencesAsync();
-    await prefs.setInt(AppUtils.dirKey, size);
+    await prefs.setInt(AppUtils.cacheSize, size);
   }
 }
 

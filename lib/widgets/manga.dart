@@ -48,11 +48,11 @@ class _MangaState extends ConsumerState<Manga>{
             },
             onTap: () {
               ref.read(currentChapterProvider.notifier).setCurrentChapter(widget.fileDir);
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (ctx) => const ChapterListing(),
-                ),
-              );
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (ctx) =>  ChapterListing(widget.fileDir),
+                  ),
+                );
             },
             child: coverImg != null
                 ? Image.file(
