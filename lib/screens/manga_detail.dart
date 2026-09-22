@@ -4,7 +4,9 @@ import 'package:confirm_dialog/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/cache_size_provider.dart';
+import 'package:manga_reader/provider/auto_crop_provider.dart';
 import 'package:manga_reader/utils/app_utils.dart';
+import 'package:manga_reader/widgets/auto_crop_image.dart';
 import 'package:zoom_view/zoom_view.dart';
 
 import '../utils/loading.dart';
@@ -29,18 +31,22 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
   @override
   Widget build(BuildContext context) {
     final cacheSizeAsyncValue = ref.watch(cacheSizeProvider);
+    final autoCropAsyncValue = ref.watch(autoCropProvider);
 
-    return cacheSizeAsyncValue.when(
-      // 只有第一次从 SharedPrefs 读取时会显示这个
-      loading: () => const Loading(),
-      // 读取失败的处理
-      error: (err, stack) => Text('Error: $err'),
-      // 一旦有了值（或者是之后的同步更新），都会走这里
-      data: (cacheSize) => _buildMangaDetailScreen(cacheSize),
+    if (cacheSizeAsyncValue.isLoading || autoCropAsyncValue.isLoading) {
+      return const Loading();
+    }
+
+    if (cacheSizeAsyncValue.hasError) return Text('Error: ${cacheSizeAsyncValue.error}');
+    if (autoCropAsyncValue.hasError) return Text('Error: ${autoCropAsyncValue.error}');
+
+    return _buildMangaDetailScreen(
+      cacheSizeAsyncValue.value ?? 100,
+      autoCropAsyncValue.value ?? false,
     );
   }
 
-  Widget _buildMangaDetailScreen(int cacheSize) {
+  Widget _buildMangaDetailScreen(int cacheSize, bool autoCrop) {
     final mangaImgList = Directory(widget.dir).listSync();
     mangaImgList.sort((a, b) {
       return Comparable.compare(a.path, b.path);
@@ -51,7 +57,7 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${widget.mangaName}-${widget.chapterName}',
+          widget.chapterName.isEmpty ? widget.mangaName : '${widget.mangaName}-${widget.chapterName}',
           style: const TextStyle(fontSize: 14),
           maxLines: 3,
         ),
@@ -88,7 +94,7 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                         int i = allChapter.indexWhere(
                           (f) => f.path == widget.dir,
                         );
-                        if (i != -1 && i != allChapter.length - 1) {
+                        if (widget.chapterName.isNotEmpty && i != -1 && i != allChapter.length - 1) {
                           confirm(ctx, content: Text('Next Chapter？')).then((
                             value,
                           ) {
@@ -108,7 +114,10 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                     ),
                   );
                 }
-                return Image.file(File(mangaImgList[i].path));
+                return AutoCropImage(
+                  file: File(mangaImgList[i].path),
+                  autoCrop: autoCrop,
+                );
               },
             ),
           ),

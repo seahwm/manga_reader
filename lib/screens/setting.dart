@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/cache_size_provider.dart';
+import 'package:manga_reader/provider/auto_crop_provider.dart';
 
 import '../utils/loading.dart';
 
@@ -21,17 +22,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final cacheSize=ref.watch(cacheSizeProvider);
-    return cacheSize.when(
-      // 只有第一次从 SharedPrefs 读取时会显示这个
-        loading: () => const Loading(),
-        // 读取失败的处理
-        error: (err, stack) => Text('Error: $err'),
-        // 一旦有了值（或者是之后的同步更新），都会走这里
-        data: (size) =>  _buildSettingScreen(size)
-    );
+    final autoCrop=ref.watch(autoCropProvider);
+
+    if (cacheSize.isLoading || autoCrop.isLoading) {
+      return const Loading();
+    }
+
+    if (cacheSize.hasError) return Text('Error: ${cacheSize.error}');
+    if (autoCrop.hasError) return Text('Error: ${autoCrop.error}');
+
+    return _buildSettingScreen(cacheSize.value ?? 100, autoCrop.value ?? false);
   }
 
-  Widget _buildSettingScreen(int cacheSize){
+  Widget _buildSettingScreen(int cacheSize, bool isAutoCrop){
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: Stack(
@@ -95,9 +98,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
+
+              // --- Reading Section ---
+              _buildSectionHeader('Reading Settings'),
+              SwitchListTile(
+                title: const Text('Auto Crop Combined Pages'),
+                subtitle: const Text('Automatically splits wide pages into right and left halves'),
+                value: isAutoCrop,
+                onChanged: (bool value) {
+                  ref.read(autoCropProvider.notifier).setAutoCrop(value);
+                },
+              ),
             ],
           ),
-          if (_isLoading) Loading(),
+          if (_isLoading) const Loading(),
         ],
       ),
     );

@@ -5,6 +5,7 @@ class AppUtils {
 
   static const dirKey = 'manga_directory';
   static const cacheSize = 'cache_size';
+  static const autoCropKey = 'auto_crop';
   static const dbName = 'manga.db';
 
   static List<String> imgExtensions = [
