@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/provider/cache_size_provider.dart';
 import 'package:manga_reader/provider/auto_crop_provider.dart';
+import 'package:manga_reader/provider/scroll_direction_provider.dart';
 
 import '../utils/loading.dart';
 
@@ -23,18 +24,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final cacheSize=ref.watch(cacheSizeProvider);
     final autoCrop=ref.watch(autoCropProvider);
+    final scrollDirection=ref.watch(scrollDirectionProvider);
 
-    if (cacheSize.isLoading || autoCrop.isLoading) {
+    if (cacheSize.isLoading || autoCrop.isLoading || scrollDirection.isLoading) {
       return const Loading();
     }
 
     if (cacheSize.hasError) return Text('Error: ${cacheSize.error}');
     if (autoCrop.hasError) return Text('Error: ${autoCrop.error}');
+    if (scrollDirection.hasError) return Text('Error: ${scrollDirection.error}');
 
-    return _buildSettingScreen(cacheSize.value ?? 100, autoCrop.value ?? false);
+    return _buildSettingScreen(cacheSize.value ?? 100, autoCrop.value ?? false, scrollDirection.value ?? Axis.vertical);
   }
 
-  Widget _buildSettingScreen(int cacheSize, bool isAutoCrop){
+  Widget _buildSettingScreen(int cacheSize, bool isAutoCrop, Axis scrollDir){
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: Stack(
@@ -108,6 +111,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 onChanged: (bool value) {
                   ref.read(autoCropProvider.notifier).setAutoCrop(value);
                 },
+              ),
+              ListTile(
+                title: const Text('Scroll Direction'),
+                subtitle: const Text('Choose between vertical (continuous) or horizontal (paging) scrolling'),
+                trailing: DropdownButton<Axis>(
+                  value: scrollDir,
+                  onChanged: (Axis? newValue) {
+                    if (newValue != null) {
+                      ref.read(scrollDirectionProvider.notifier).setScrollDirection(newValue);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: Axis.vertical,
+                      child: Text('Vertical'),
+                    ),
+                    DropdownMenuItem(
+                      value: Axis.horizontal,
+                      child: Text('Horizontal'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
