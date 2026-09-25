@@ -80,6 +80,7 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                         return _buildEndButton(ctx, widget.dir, widget.chapterName);
                       }
                       return AutoCropImage(
+                        key: ValueKey('${mangaImgList[i].path}_$autoCrop'),
                         file: File(mangaImgList[i].path),
                         autoCrop: autoCrop,
                       );
@@ -97,6 +98,7 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                       minScale: 1.0,
                       maxScale: 4.0,
                       child: AutoCropImage(
+                        key: ValueKey('${mangaImgList[i].path}_$autoCrop'),
                         file: File(mangaImgList[i].path),
                         autoCrop: autoCrop,
                       ),
