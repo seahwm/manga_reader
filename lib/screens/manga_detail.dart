@@ -9,6 +9,7 @@ import 'package:manga_reader/provider/scroll_direction_provider.dart';
 import 'package:manga_reader/utils/app_utils.dart';
 import 'package:manga_reader/widgets/auto_crop_image.dart';
 import 'package:zoom_view/zoom_view.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../utils/loading.dart';
 
@@ -26,8 +27,16 @@ class MangaDetail extends ConsumerStatefulWidget {
 }
 
 class _MangaDetailState extends ConsumerState<MangaDetail> {
-  final int _currentPage = 1;
+  final ValueNotifier<int> _currentPage = ValueNotifier<int>(1);
   ScrollController controller = ScrollController();
+  final Map<int, double> _visiblePages = {};
+
+  @override
+  void dispose() {
+    _currentPage.dispose();
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,12 +85,39 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
                     cacheExtent: MediaQuery.of(context).size.height * cacheSize,
                     itemCount: mangaImgList.length + 1,
                     itemBuilder: (ctx, i) {
+                      Widget childWidget;
                       if (i == mangaImgList.length) {
-                        return _buildEndButton(ctx, widget.dir, widget.chapterName);
+                        childWidget = _buildEndButton(ctx, widget.dir, widget.chapterName);
+                      } else {
+                        childWidget = AutoCropImage(
+                          file: File(mangaImgList[i].path),
+                          autoCrop: autoCrop,
+                        );
                       }
-                      return AutoCropImage(
-                        file: File(mangaImgList[i].path),
-                        autoCrop: autoCrop,
+                      return VisibilityDetector(
+                        key: Key('${widget.dir}_page_${i}'),
+                        onVisibilityChanged: (visibilityInfo) {
+                          final visibleFraction = visibilityInfo.visibleFraction;
+                          _visiblePages[i] = visibleFraction;
+
+                          int? mostVisiblePage;
+                          double maxVisibleFraction = 0;
+
+                          _visiblePages.forEach((index, fraction) {
+                            if (fraction > maxVisibleFraction) {
+                              maxVisibleFraction = fraction;
+                              mostVisiblePage = index;
+                            }
+                          });
+
+                          if (mostVisiblePage != null) {
+                            // Update only if it actually changed to avoid rebuild loops
+                            if (_currentPage.value != mostVisiblePage! + 1) {
+                              _currentPage.value = mostVisiblePage! + 1;
+                            }
+                          }
+                        },
+                        child: childWidget,
                       );
                     },
                   ),
@@ -89,6 +125,9 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
               : PageView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: mangaImgList.length + 1,
+                  onPageChanged: (index) {
+                    _currentPage.value = index + 1;
+                  },
                   itemBuilder: (ctx, i) {
                     if (i == mangaImgList.length) {
                       return Center(child: _buildEndButton(ctx, widget.dir, widget.chapterName));
@@ -151,22 +190,27 @@ class _MangaDetailState extends ConsumerState<MangaDetail> {
       // bottom: 16.0 和 right: 16.0 定义了它距离 Stack 底部和右侧的距离
       bottom: 16.0,
       right: 16.0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-        // 添加一个半透明的背景，让文字更易读
-        decoration: BoxDecoration(
-          color: Colors.black54, // 半透明黑色
-          borderRadius: BorderRadius.circular(20.0), // 圆角
-        ),
-        child: Text(
-          // 显示当前的页码 (从 1 开始) 和总页数
-          '$_currentPage / $totalPages',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+      child: ValueListenableBuilder<int>(
+        valueListenable: _currentPage,
+        builder: (context, value, child) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            // 添加一个半透明的背景，让文字更易读
+            decoration: BoxDecoration(
+              color: Colors.black54, // 半透明黑色
+              borderRadius: BorderRadius.circular(20.0), // 圆角
+            ),
+            child: Text(
+              // 显示当前的页码 (从 1 开始) 和总页数
+              value > totalPages ? 'End' : '$value / $totalPages',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
